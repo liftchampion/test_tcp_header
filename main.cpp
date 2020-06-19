@@ -19,9 +19,52 @@
 #include <zconf.h>
 #include <x86intrin.h>
 
+#include <netdb.h>
+#include <netinet/in.h>
+
 #include <iostream>
 
+#define MAX_ETH_HEADERS    (14/*ETH*/ + 4/*802.1Q*/)
+#define MAX_IP_TCP_HEADERS (20/*IP*/ + 20/*TCP*/ + 12/*TCP options*/)
+
 #define USE_COPY_PIO
+
+class Addr {
+  public:
+    static inline int getaddrinfo_hostport(const char* hostport_c,
+                                           const struct addrinfo* hints,
+                                           struct addrinfo** res) noexcept
+    {
+        char* hostport = strdup(hostport_c);
+        if( hostport == NULL )
+            return EAI_MEMORY;
+        char* port = std::strrchr(hostport, ':');
+        if( port != NULL )
+            *port++ = '\0';
+        struct addrinfo hints2;
+        if( hints == NULL ) {
+            memset(&hints2, 0, sizeof(hints2));
+            hints = &hints2;
+        }
+        int rc = getaddrinfo(hostport, port, hints, res);
+        free(hostport);
+        return rc;
+    }
+
+    static inline sockaddr_in string_to_inaddr(const std::string& str) noexcept {
+        struct addrinfo*    addrinfo;
+        struct sockaddr_in  addr;
+        int ret = getaddrinfo_hostport(str.data(), nullptr, &addrinfo);
+        if (ret != 0) {
+            std::cerr << gai_strerror(ret) << std::endl;
+            exit(1);
+        }
+        ::memcpy(&addr, addrinfo->ai_addr, addrinfo->ai_addrlen);
+        freeaddrinfo(addrinfo);
+        return addr;
+    }
+};
+
 
 class TcpDirect_and_EfVi {
   public:
@@ -77,6 +120,30 @@ class TcpDirect_and_EfVi {
         return true;
     }
 
+    inline void evq_poll() noexcept
+    {
+        ef_request_id ids[EF_VI_TRANSMIT_BATCH];
+        ef_event evs[EF_VI_EVENT_POLL_MIN_EVS];
+        int n_ev;
+        int unbundle_ret;
+
+        n_ev = ef_eventq_poll(&vi, evs, sizeof(evs) / sizeof(evs[0]));
+        for (int i = 0; i < n_ev; ++i) {
+            switch (EF_EVENT_TYPE(evs[i])) {
+                case EF_EVENT_TYPE_TX:
+                    unbundle_ret = ef_vi_transmit_unbundle(&vi, &evs[i], ids);
+                    if (unbundle_ret) {
+                        pio_in_use = false;
+                    }
+                    break;
+                default:
+                    fprintf(stderr, "ERROR: unexpected event \n");
+                    return;
+                    break;
+            }
+        }
+    }
+
     inline void deinit() noexcept
     {
         deinit_ev_fi();
@@ -118,21 +185,116 @@ class TcpDirect_and_EfVi {
     ef_driver_handle driver_handle = {};
     ef_vi            vi = {};
 
+
+    bool pio_in_use = false;
 };
+
+
+class Zocket {
+  public:
+
+    Zocket(TcpDirect_and_EfVi* tcp_direct_and_ef_vi) : tcp_direct_and_ef_vi(tcp_direct_and_ef_vi) {}
+
+    inline bool open(const std::string &ip_port) noexcept
+    {
+        sockaddr_in addr = Addr::string_to_inaddr(ip_port);
+        return open(&addr);
+    }
+
+    inline bool open(const sockaddr_in* addr) noexcept
+    {
+        if (zft_alloc(tcp_direct_and_ef_vi->stack, tcp_direct_and_ef_vi->attr, &_socket_handle)) {
+            std::cout << "zft_alloc err " << std::endl;
+            return false;
+        }
+        if (zft_connect(_socket_handle, (const sockaddr*)addr, sizeof(sockaddr), &_socket)) {
+            std::cout << "zft_connect err " << std::endl;
+            return false;
+        }
+        while (zft_state(_socket) == TCP_SYN_SENT) {
+            zf_reactor_perform(tcp_direct_and_ef_vi->stack);
+        }
+        if (zft_state(_socket) != TCP_ESTABLISHED) {
+            std::cout << "connection not established" << std::endl;
+            return false;
+        }
+        return true;
+    }
+
+
+    inline bool close() noexcept
+    {
+        while (zft_shutdown_tx(_socket) == -EAGAIN) {
+            zf_reactor_perform(tcp_direct_and_ef_vi->stack);
+        }
+        if (zft_free(_socket)) {
+            std::cout << "zft_free err" << std::endl;
+            return false;
+        }
+        if (zft_handle_free(_socket_handle)) {
+            std::cout << "zft_handle_free err" << std::endl;
+            return false;
+        }
+        _socket = nullptr;
+        _socket_handle = nullptr;
+        return true;
+    }
+
+    TcpDirect_and_EfVi* tcp_direct_and_ef_vi = {};
+
+
+
+    static constexpr uint64_t _max_send_size = 400;
+    static constexpr uint32_t _tcp_flag_psh = 0x8;
+    static constexpr int      _push = 1;
+    static constexpr int      _tcp_offset_seq_to_flags = 9;
+
+    zft_handle* _socket_handle = nullptr;
+    zft*        _socket = nullptr;
+
+    uint64_t _pio_offset = 0;
+    uint64_t _pio_data_len = 0;
+    uint64_t _max_iov = 1;
+    uint64_t _header_timestamp = 0;
+
+    int _pio_id = 0;
+
+
+    char _headers_buf[MAX_ETH_HEADERS + MAX_IP_TCP_HEADERS + _max_send_size];
+    char _send_buff[1024] = {};
+    char _recv_buff[1024] = {};
+
+//    typedef struct rx_msg;
+//    rx_msg _msg;
+//    struct {
+//        struct zft_msg msg;
+//        struct iovec iov[1];
+//    } _msg;
+
+};
+
+
 
 int main(int ac, char** av)
 {
     if (ac != 2) {
-        std::cout << "Usage <InterfaceName> <...>" << std::endl;
+        std::cout << "Usage <InterfaceName> <Host:Port>" << std::endl;
         return 0;
     }
     TcpDirect_and_EfVi tcpdirect;
     if (!tcpdirect.init(av[1])) {
         return 0;
     }
+    Zocket zocket(&tcpdirect);
+    if (!zocket.open(av[2])) {
+        return 0;
+    }
 
+    if (!tcpdirect.pio_in_use) {
 
+    }
 
+    zocket.close();
 
 
     std::cout << "Hello, World!" << std::endl;
