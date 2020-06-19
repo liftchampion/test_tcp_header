@@ -130,8 +130,10 @@ class TcpDirect_and_EfVi {
             switch (EF_EVENT_TYPE(evs[i])) {
                 case EF_EVENT_TYPE_TX:
                     unbundle_ret = ef_vi_transmit_unbundle(&vi, &evs[i], ids);
+                    std::cout << "Ub ret " << unbundle_ret << std::endl;
                     if (unbundle_ret) {
                         pio_in_use = false;
+                        std::cout << "Pio  in use: false" << std::endl;
                     }
                     break;
                 default:
@@ -224,8 +226,9 @@ class Zocket {
     inline void do_write() noexcept
     {
         fill_msg_with_rand();
+        printf("Trying to send %d bytes '%*s'\n", msg_actual_len, msg_actual_len, send_buff);
 #ifdef USE_COPY_PIO
-        create_header(0, false);
+        create_header(false);
         prepare_data_for_copy_pio();
         ef_vi_transmit_pio_warm(&tcp_direct_and_ef_vi->vi);
         write_with_copy_pio();
@@ -234,6 +237,7 @@ class Zocket {
         ef_vi_transmit_pio_warm(&tcp_direct_and_ef_vi->vi);
         write();
 #endif
+        std::cout << "Pio in use: true" << std::endl;
         tcp_direct_and_ef_vi->pio_in_use = true;
         complete_send();
     }
@@ -241,10 +245,10 @@ class Zocket {
 
     inline void fill_msg_with_rand() noexcept
     {
-        for (size_t i = 0; i < msg_actual_len; ++i) { send_buff[i] = rand() % 90 + 33; }
+        for (int i = 0; i < msg_actual_len; ++i) { send_buff[i] = rand() % 90 + 33; }
     }
 
-    inline bool create_header(uint64_t timestamp, bool put_to_pio) noexcept
+    inline bool create_header(bool put_to_pio) noexcept
     {
         _zfds.headers_size = MAX_ETH_HEADERS + MAX_IP_TCP_HEADERS;
         _zfds.headers = headers_buf;
@@ -260,8 +264,7 @@ class Zocket {
                 std::cout << "ef_pio_memcpy err" << std::endl;
                 return false;
             }
-//            _header_timestamp = timestamp;
-            if (!set_message_size(314)) {
+            if (!set_message_size(msg_declared_len)) {
                 return false;
             }
         }
@@ -320,12 +323,12 @@ class Zocket {
 
     TcpDirect_and_EfVi* tcp_direct_and_ef_vi = {};
 
-    int msg_declared_len = 80;
-    int msg_actual_len = 80;
+    const int msg_declared_len;
+    const int msg_actual_len;
 
     static constexpr uint64_t _max_send_size = 400;
     static constexpr uint32_t _tcp_flag_psh = 0x8;
-    static constexpr int      _push = 1;
+    static constexpr int      _push = 0;
     static constexpr int      _tcp_offset_seq_to_flags = 9;
 
     zft_handle* _socket_handle = nullptr;
@@ -335,7 +338,6 @@ class Zocket {
     uint64_t pio_offset = 0;
     uint64_t pio_data_len = 0;
     uint64_t max_iov = 1;
-    uint64_t header_timestamp = 0;
 
     int pio_id = 0;
 
@@ -371,6 +373,7 @@ int main(int ac, char** av)
     if (!zocket.open(av[2])) {
         return 0;
     }
+    std::cout << "Opened" << std::endl;
 
     if (!tcpdirect.pio_in_use) {
         zocket.do_write();
