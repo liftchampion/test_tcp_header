@@ -133,7 +133,7 @@ class TcpDirect_and_EfVi {
                     std::cout << "Ub ret " << unbundle_ret << std::endl;
                     if (unbundle_ret) {
                         pio_in_use = false;
-                        std::cout << "Pio  in use: false" << std::endl;
+                        std::cout << "Pio in use: false" << std::endl;
                     }
                     break;
                 default:
@@ -382,6 +382,7 @@ int main(int ac, char** av)
         tcpdirect.evq_poll();
     }
 
+    sleep(1);
     zocket.close();
 
 
