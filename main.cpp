@@ -277,7 +277,7 @@ class Zocket {
 
 int main(int ac, char** av)
 {
-    if (ac != 2) {
+    if (ac != 3) {
         std::cout << "Usage <InterfaceName> <Host:Port>" << std::endl;
         return 0;
     }
