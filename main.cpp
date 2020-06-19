@@ -375,6 +375,9 @@ int main(int ac, char** av)
     if (!tcpdirect.pio_in_use) {
         zocket.do_write();
     }
+    while (tcpdirect.pio_in_use) {
+        tcpdirect.evq_poll();
+    }
 
     zocket.close();
 
