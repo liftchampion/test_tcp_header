@@ -288,6 +288,7 @@ int main(int ac, char **av) {
     std::string hostport = "0.0.0.0:0";
     if (ac == 2) { hostport = av[1]; }
 
+
     sockaddr_in serv_addr = Addr::string_to_inaddr(hostport);
 
     std::cout << "Requested server at addr " << Addr::inaddr_to_str(&serv_addr) << std::endl;
