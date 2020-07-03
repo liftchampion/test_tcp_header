@@ -304,11 +304,11 @@ int main(int ac, char **av) {
         std::cout << strerror(errno) << std::endl;
         return 1;
     }
-    if (listen(listening_socket, 20)) {
-        std::cout << "listen err" << std::endl;
-        std::cout << strerror(errno) << std::endl;
-        return 1;
-    }
+//    if (listen(listening_socket, 20)) {
+//        std::cout << "listen err" << std::endl;
+//        std::cout << strerror(errno) << std::endl;
+//        return 1;
+//    }
     socklen_t len = sizeof(serv_addr);
     if (getsockname(listening_socket, reinterpret_cast<sockaddr*>(&serv_addr), &len)) {
         std::cout << "getsockname err" << std::endl;
@@ -319,16 +319,16 @@ int main(int ac, char **av) {
     std::cout << "Opened server at addr " << Addr::inaddr_to_str(&serv_addr) << std::endl;
 
 
-    sockaddr_in from;
-    socklen_t   fromlen = sizeof(from);
-    int client = accept(listening_socket, reinterpret_cast<sockaddr*>(&from), &fromlen);
-    if (client == -1 && errno != EAGAIN) {
-        std::cout << "accept err" << std::endl;
-        std::cout << strerror(errno) << std::endl;
-        return 1;
-    }
-    if (client == -1) { return 1; }
-    std::cout << "Connected client " << client << ": " << Addr::inaddr_to_str(&from) << std::endl;
+//    sockaddr_in from;
+//    socklen_t   fromlen = sizeof(from);
+//    int client = accept(listening_socket, reinterpret_cast<sockaddr*>(&from), &fromlen);
+//    if (client == -1 && errno != EAGAIN) {
+//        std::cout << "accept err" << std::endl;
+//        std::cout << strerror(errno) << std::endl;
+//        return 1;
+//    }
+//    if (client == -1) { return 1; }
+//    std::cout << "Connected client " << client << ": " << Addr::inaddr_to_str(&from) << std::endl;
 
 
 
@@ -336,7 +336,8 @@ int main(int ac, char **av) {
     char recv_buf[1024] = {};
     ssize_t recv_ret = 1;
     while (recv_ret) {
-        recv_ret = recv(client, recv_buf, 1024, 0);
+        recv_ret = recv(listening_socket, recv_buf, 1024, 0);
+//        recv_ret = recv(client, recv_buf, 1024, 0);
         if (recv_ret == -1) {
             std::cout << "Recv err" << std::endl;
             std::cout << strerror(errno) << std::endl;
