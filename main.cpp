@@ -288,7 +288,8 @@ class Zocket {
         pio_data_len = _zfds.headers_len + msg_actual_len;
     }
 
-    inline void write_with_copy_pio() noexcept {
+    inline void write_with_copy_pio() noexcept
+    {
         ef_vi_transmit_copy_pio(&tcp_direct_and_ef_vi->vi, pio_offset, headers_buf, pio_data_len, pio_id);
     }
 
@@ -305,14 +306,17 @@ class Zocket {
 
     inline bool close() noexcept
     {
-        while (zft_shutdown_tx(_socket) == -EAGAIN) {
+        while (zft_shutdown_tx(_socket) == -EAGAIN)
+        {
             zf_reactor_perform(tcp_direct_and_ef_vi->stack);
         }
-        if (zft_free(_socket)) {
+        if (zft_free(_socket))
+        {
             std::cout << "zft_free err" << std::endl;
             return false;
         }
-        if (zft_handle_free(_socket_handle)) {
+        if (zft_handle_free(_socket_handle))
+        {
             std::cout << "zft_handle_free err" << std::endl;
             return false;
         }
@@ -360,7 +364,7 @@ class Zocket {
 int main(int ac, char** av)
 {
     if (ac != 5) {
-        std::cout << "Usage <InterfaceName> <Host:Port> <MsgLenInheader> <MsgActualLen>" << std::endl;
+        std::cout << "Usage <InterfaceName> <Host:Port> <MsgLenInHeader> <MsgActualLen>" << std::endl;
         return 0;
     }
     TcpDirect_and_EfVi tcpdirect;
@@ -375,11 +379,14 @@ int main(int ac, char** av)
     }
     std::cout << "Opened" << std::endl;
 
-    if (!tcpdirect.pio_in_use) {
-        zocket.do_write();
-    }
-    while (tcpdirect.pio_in_use) {
-        tcpdirect.evq_poll();
+
+    for (int i = 0; i < 10; ++i) {
+        if (!tcpdirect.pio_in_use) {
+            zocket.do_write();
+        }
+        while (tcpdirect.pio_in_use) {
+            tcpdirect.evq_poll();
+        }
     }
 
     sleep(1);
