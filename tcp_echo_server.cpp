@@ -293,7 +293,7 @@ int main(int ac, char **av) {
 
     std::cout << "Requested server at addr " << Addr::inaddr_to_str(&serv_addr) << std::endl;
 
-    int listening_socket = socket(AF_INET, SOCK_STREAM, 0);
+    int listening_socket = socket(AF_INET, SOCK_DGRAM, 0);
     if (listening_socket == -1) {
         std::cout << "socket err" << std::endl;
         return 1;
@@ -356,4 +356,5 @@ int main(int ac, char **av) {
     }
     return 0;
 }
+
 
