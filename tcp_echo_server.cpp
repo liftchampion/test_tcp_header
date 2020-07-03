@@ -333,6 +333,7 @@ int main(int ac, char **av) {
         recv_ret = recv(client, recv_buf, 1024, 0);
         if (recv_ret == -1) {
             std::cout << "Recv err" << std::endl;
+            std::cout << strerror(errno) << std::endl;
             return 1;
         }
         printf("Recved %ld bytes: '%.*s'\n", recv_ret, (int)recv_ret, recv_buf);
