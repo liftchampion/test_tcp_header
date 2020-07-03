@@ -296,19 +296,23 @@ int main(int ac, char **av) {
     int listening_socket = socket(AF_INET, SOCK_DGRAM, 0);
     if (listening_socket == -1) {
         std::cout << "socket err" << std::endl;
+        std::cout << strerror(errno) << std::endl;
         return 1;
     }
     if (bind(listening_socket, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr))) {
         std::cout << "bind err" << std::endl;
+        std::cout << strerror(errno) << std::endl;
         return 1;
     }
     if (listen(listening_socket, 20)) {
         std::cout << "listen err" << std::endl;
+        std::cout << strerror(errno) << std::endl;
         return 1;
     }
     socklen_t len = sizeof(serv_addr);
     if (getsockname(listening_socket, reinterpret_cast<sockaddr*>(&serv_addr), &len)) {
         std::cout << "getsockname err" << std::endl;
+        std::cout << strerror(errno) << std::endl;
         return 1;
     }
 
@@ -320,6 +324,7 @@ int main(int ac, char **av) {
     int client = accept(listening_socket, reinterpret_cast<sockaddr*>(&from), &fromlen);
     if (client == -1 && errno != EAGAIN) {
         std::cout << "accept err" << std::endl;
+        std::cout << strerror(errno) << std::endl;
         return 1;
     }
     if (client == -1) { return 1; }
