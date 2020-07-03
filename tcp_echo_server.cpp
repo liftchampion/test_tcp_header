@@ -288,57 +288,57 @@ int main(int ac, char **av) {
     std::string hostport = "0.0.0.0:0";
     if (ac == 2) { hostport = av[1]; }
 
-//    sockaddr_in serv_addr = Addr::string_to_inaddr(hostport);
-//
-//    std::cout << "Requested server at addr " << Addr::inaddr_to_str(&serv_addr) << std::endl;
-//
-//    int listening_socket = socket(AF_INET, SOCK_STREAM, 0);
-//    if (listening_socket == -1) {
-//        std::cout << "socket err" << std::endl;
-//        return 1;
-//    }
-//    if (bind(listening_socket, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr))) {
-//        std::cout << "bind err" << std::endl;
-//        return 1;
-//    }
-//    if (listen(listening_socket, 20)) {
-//        std::cout << "listen err" << std::endl;
-//        return 1;
-//    }
-//    socklen_t len = sizeof(serv_addr);
-//    if (getsockname(listening_socket, reinterpret_cast<sockaddr*>(&serv_addr), &len)) {
-//        std::cout << "getsockname err" << std::endl;
-//        return 1;
-//    }
-//
-//    std::cout << "Opened server at addr " << Addr::inaddr_to_str(&serv_addr) << std::endl;
-//
-//
-//    sockaddr_in from;
-//    socklen_t   fromlen = sizeof(from);
-//    int client = accept(listening_socket, reinterpret_cast<sockaddr*>(&from), &fromlen);
-//    if (client == -1 && errno != EAGAIN) {
-//        std::cout << "accept err" << std::endl;
-//        return 1;
-//    }
-//    if (client == -1) { return 1; }
-//    std::cout << "Connected client " << client << ": " << Addr::inaddr_to_str(&from) << std::endl;
-//
-//
-//
-//
-//    char recv_buf[1024] = {};
-//    ssize_t recv_ret = 1;
-//    while (recv_ret) {
-//        recv_ret = recv(client, recv_buf, 1024, 0);
-//        if (recv_ret == -1) {
-//            std::cout << "Recv err" << std::endl;
-//            std::cout << strerror(errno) << std::endl;
-//            return 1;
-//        }
-//        printf("Recved %ld bytes: '%.*s'\n", recv_ret, (int)recv_ret, recv_buf);
-//    }
-//    return 0;
+    sockaddr_in serv_addr = Addr::string_to_inaddr(hostport);
+
+    std::cout << "Requested server at addr " << Addr::inaddr_to_str(&serv_addr) << std::endl;
+
+    int listening_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (listening_socket == -1) {
+        std::cout << "socket err" << std::endl;
+        return 1;
+    }
+    if (bind(listening_socket, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr))) {
+        std::cout << "bind err" << std::endl;
+        return 1;
+    }
+    if (listen(listening_socket, 20)) {
+        std::cout << "listen err" << std::endl;
+        return 1;
+    }
+    socklen_t len = sizeof(serv_addr);
+    if (getsockname(listening_socket, reinterpret_cast<sockaddr*>(&serv_addr), &len)) {
+        std::cout << "getsockname err" << std::endl;
+        return 1;
+    }
+
+    std::cout << "Opened server at addr " << Addr::inaddr_to_str(&serv_addr) << std::endl;
+
+
+    sockaddr_in from;
+    socklen_t   fromlen = sizeof(from);
+    int client = accept(listening_socket, reinterpret_cast<sockaddr*>(&from), &fromlen);
+    if (client == -1 && errno != EAGAIN) {
+        std::cout << "accept err" << std::endl;
+        return 1;
+    }
+    if (client == -1) { return 1; }
+    std::cout << "Connected client " << client << ": " << Addr::inaddr_to_str(&from) << std::endl;
+
+
+
+
+    char recv_buf[1024] = {};
+    ssize_t recv_ret = 1;
+    while (recv_ret) {
+        recv_ret = recv(client, recv_buf, 1024, 0);
+        if (recv_ret == -1) {
+            std::cout << "Recv err" << std::endl;
+            std::cout << strerror(errno) << std::endl;
+            return 1;
+        }
+        printf("Recved %ld bytes: '%.*s'\n", recv_ret, (int)recv_ret, recv_buf);
+    }
+    return 0;
 
 
     TCPServer server(hostport);
