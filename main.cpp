@@ -1,9 +1,5 @@
 #include <iostream>
 
-//class TCPDelegatedDataChannel;
-//#include "delegated_data_event_loop.h"
-//#include "delegated_data_channel.h"
-
 #include <zf/zf.h>
 #include <netinet/tcp.h>
 #include <etherfabric/vi.h>
@@ -27,7 +23,6 @@
 #define MAX_ETH_HEADERS    (14/*ETH*/ + 4/*802.1Q*/)
 #define MAX_IP_TCP_HEADERS (20/*IP*/ + 20/*TCP*/ + 12/*TCP options*/)
 
-#define USE_COPY_PIO
 
 class Addr {
   public:
@@ -227,16 +222,10 @@ class Zocket {
     {
         fill_msg_with_rand();
         printf("Trying to send %d bytes '%*s'\n", msg_actual_len, msg_actual_len, send_buff);
-#ifdef USE_COPY_PIO
-        create_header(false);
+        create_header();
         prepare_data_for_copy_pio();
         ef_vi_transmit_pio_warm(&tcp_direct_and_ef_vi->vi);
         write_with_copy_pio();
-#else
-        create_header(0, true);
-        ef_vi_transmit_pio_warm(&tcp_direct_and_ef_vi->vi);
-        write();
-#endif
         std::cout << "Pio in use: true" << std::endl;
         tcp_direct_and_ef_vi->pio_in_use = true;
         complete_send();
@@ -248,34 +237,12 @@ class Zocket {
         for (int i = 0; i < msg_actual_len; ++i) { send_buff[i] = rand() % 90 + 33; }
     }
 
-    inline bool create_header(bool put_to_pio) noexcept
+    inline bool create_header() noexcept
     {
         _zfds.headers_size = MAX_ETH_HEADERS + MAX_IP_TCP_HEADERS;
         _zfds.headers = headers_buf;
         if (zf_delegated_send_prepare(_socket, _max_send_size, 40960, 0, &(_zfds)) != ZF_DELEGATED_SEND_RC_OK) {
             std::cout << "zf_delegated_send_prepare err" << std::endl;
-            return false;
-        }
-        auto tcp_flags_p = reinterpret_cast<uint8_t*>((size_t)_zfds.headers + _zfds.tcp_seq_offset + _tcp_offset_seq_to_flags);
-        if (_push) { *tcp_flags_p |= _tcp_flag_psh; }
-        else { *tcp_flags_p &= ~_tcp_flag_psh; }
-        if (put_to_pio) {
-            if (ef_pio_memcpy(&tcp_direct_and_ef_vi->vi, _zfds.headers, 0, _zfds.headers_size)) {
-                std::cout << "ef_pio_memcpy err" << std::endl;
-                return false;
-            }
-            if (!set_message_size(msg_declared_len)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    inline bool set_message_size(uint16_t size) noexcept
-    {
-        uint16_t size_to_set = htons(size + _zfds.ip_tcp_hdr_len);
-        if (ef_pio_memcpy(&tcp_direct_and_ef_vi->vi, &size_to_set, _zfds.ip_len_offset, sizeof(size_to_set))) {
-            std::cout << "ef_pio_memcpy err" << std::endl;
             return false;
         }
         return true;
@@ -341,21 +308,12 @@ class Zocket {
 
     uint64_t pio_offset = 0;
     uint64_t pio_data_len = 0;
-    uint64_t max_iov = 1;
 
     int pio_id = 0;
-
 
     char headers_buf[MAX_ETH_HEADERS + MAX_IP_TCP_HEADERS + _max_send_size];
     char send_buff[1024] = {};
     char recv_buff[1024] = {};
-
-//    typedef struct rx_msg;
-//    rx_msg _msg;
-//    struct {
-//        struct zft_msg msg;
-//        struct iovec iov[1];
-//    } _msg;
 
 };
 
