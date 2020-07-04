@@ -387,6 +387,7 @@ int main(int ac, char** av)
         while (tcpdirect.pio_in_use) {
             tcpdirect.evq_poll();
         }
+        sleep(1);
     }
 
     sleep(1);
