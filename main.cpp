@@ -284,7 +284,7 @@ class Zocket {
     inline void prepare_data_for_copy_pio()
     {
         memcpy(headers_buf + _zfds.headers_len, send_buff, msg_actual_len);
-        zf_delegated_send_tcp_update(&_zfds, msg_actual_len, _push);
+        zf_delegated_send_tcp_update(&_zfds, msg_declared_len, _push);
         pio_data_len = _zfds.headers_len + msg_actual_len;
     }
 
