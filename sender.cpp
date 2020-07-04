@@ -14,7 +14,7 @@
 
 #include <sys/socket.h>
 
-#include <netinet/ip.h>
+//#include <netinet/ip.h>
 
 #include <netinet/tcp.h>
 
@@ -177,14 +177,14 @@ int main(int argc, char const *argv[])
 
     ::memset(buffer, 'A', PCKT_LEN);
 
-    struct iphdr*  ip  = (struct iphdr*) buffer;
-    struct udphdr* udp = (struct udphdr*)(buffer + sizeof(struct iphdr));
+    struct iphdr *ip = (struct iphdr *) buffer;
+    struct udphdr *udp = (struct udphdr *) (buffer + sizeof(struct iphdr));
 
     struct sockaddr_in sin;
-    int        one = 1;
-    const int* val = &one;
+    int one = 1;
+    const int *val = &one;
 
-    memset(buffer, 0, PCKT_LEN);
+    memset(buffer, 'A', PCKT_LEN);
     int SIZE = 64;
 
     // create a raw socket with UDP protocol
@@ -196,23 +196,23 @@ int main(int argc, char const *argv[])
     printf("OK: a raw socket is created.\n");
 
     // inform the kernel do not fill up the packet structure, we will build our own
-    if(setsockopt(sd, IPPROTO_IP, IP_HDRINCL, val, sizeof(one)) < 0) {
+    if (setsockopt(sd, IPPROTO_IP, IP_HDRINCL, val, sizeof(one)) < 0) {
         perror("setsockopt() error");
         exit(2);
     }
     printf("OK: socket option IP_HDRINCL is set.\n");
 
-    sin.sin_family      = AF_INET;
-    sin.sin_port        = htons(dst_port);
+    sin.sin_family = AF_INET;
+    sin.sin_port = htons(dst_port);
     sin.sin_addr.s_addr = dst_addr;
 
     // fabricate the IP header
-    ip->ihl      = 5;
-    ip->version  = 4;
-    ip->tos      = 16; // low delay
-    ip->tot_len  = sizeof(struct iphdr) + sizeof(struct udphdr) + SIZE;
-    ip->id       = htons(54321);
-    ip->ttl      = 64; // hops
+    ip->ihl = 5;
+    ip->version = 4;
+    ip->tos = 16; // low delay
+    ip->tot_len = sizeof(struct iphdr) + sizeof(struct udphdr);
+    ip->id = htons(54321);
+    ip->ttl = 64; // hops
     ip->protocol = 17; // UDP
     // source IP address, can use spoofed address here
     ip->saddr = src_addr;
@@ -225,12 +225,11 @@ int main(int argc, char const *argv[])
     udp->len = htons(sizeof(struct udphdr));
 
     // calculate the checksum for integrity
-    ip->check = csum((unsigned short *)buffer,
+    ip->check = csum((unsigned short *) buffer,
                      sizeof(struct iphdr) + sizeof(struct udphdr));
 
     if (sendto(sd, buffer, ip->tot_len, 0,
-               (struct sockaddr *)&sin, sizeof(sin)) < 0)
-    {
+               (struct sockaddr *) &sin, sizeof(sin)) < 0) {
         perror("sendto()");
         exit(3);
     }
