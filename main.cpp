@@ -89,7 +89,7 @@ class TcpDirect_and_EfVi {
             switch (EF_EVENT_TYPE(evs[i])) {
                 case EF_EVENT_TYPE_TX:
                     unbundle_ret = ef_vi_transmit_unbundle(&vi, &evs[i], ids);
-                    std::cout << "Ub ret " << unbundle_ret << std::endl;
+//                    std::cout << "Ub ret " << unbundle_ret << std::endl;
                     if (unbundle_ret) {
                         pio_in_use = false;
 //                        std::cout << "Pio in use: false" << std::endl;
@@ -277,8 +277,6 @@ class Zocket {
 
     char headers_buf[MAX_ETH_HEADERS + MAX_IP_TCP_HEADERS + _max_send_size];
     char send_buff[1024] = {};
-    char recv_buff[1024] = {};
-
 };
 
 
