@@ -369,7 +369,7 @@ int main(int ac, char **av) {
                 if (errno == ECONNREFUSED) {
                     std::cout << "CLIENT DISCONNECTED" << std::endl;
                 } else {
-                    std::cout << "Recv err" << std::endl;
+                    std::cout << "Recv err [" << errno << ']' << std::endl;
                     std::cout << strerror(errno) << std::endl;
                     return 1;
                 }
