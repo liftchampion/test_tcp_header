@@ -262,9 +262,7 @@ class Zocket {
     const int msg_actual_len;
 
     static constexpr uint64_t _max_send_size = 400;
-    static constexpr uint32_t _tcp_flag_psh = 0x8;
     static constexpr int      _push = 0;
-    static constexpr int      _tcp_offset_seq_to_flags = 9;
 
     zft_handle* _socket_handle = nullptr;
     zft*        _socket = nullptr;
