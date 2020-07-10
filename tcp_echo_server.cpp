@@ -319,32 +319,68 @@ int main(int ac, char **av) {
     std::cout << "Opened server at addr " << Addr::inaddr_to_str(&serv_addr) << std::endl;
 
 
-    sockaddr_in from;
-    socklen_t   fromlen = sizeof(from);
-    int client = accept(listening_socket, reinterpret_cast<sockaddr*>(&from), &fromlen);
-    if (client == -1 && errno != EAGAIN) {
-        std::cout << "accept err" << std::endl;
-        std::cout << strerror(errno) << std::endl;
-        return 1;
-    }
-    if (client == -1) { return 1; }
-    std::cout << "Connected client " << client << ": " << Addr::inaddr_to_str(&from) << std::endl;
+//    sockaddr_in from;
+//    socklen_t   fromlen = sizeof(from);
+//    int client = accept(listening_socket, reinterpret_cast<sockaddr*>(&from), &fromlen);
+//    if (client == -1 && errno != EAGAIN) {
+//        std::cout << "accept err" << std::endl;
+//        std::cout << strerror(errno) << std::endl;
+//        return 1;
+//    }
+//    if (client == -1) { return 1; }
+//    std::cout << "Connected client " << client << ": " << Addr::inaddr_to_str(&from) << std::endl;
 
 
 
-    char recv_buf[1024] = {};
-    ssize_t recv_ret = 1;
-    while (recv_ret) {
-//        recv_ret = recv(listening_socket, recv_buf, 1024, 0);
-        recv_ret = recv(client, recv_buf, 1024, 0);
-        if (recv_ret == -1) {
-            std::cout << "Recv err" << std::endl;
-            std::cout << strerror(errno) << std::endl;
-            return 1;
+//    char recv_buf[1024] = {};
+//    ssize_t recv_ret = 1;
+//    while (recv_ret) {
+////        recv_ret = recv(listening_socket, recv_buf, 1024, 0);
+//        recv_ret = recv(client, recv_buf, 1024, MSG_NOSIGNAL);
+//        if (recv_ret == -1) {
+//            std::cout << "Recv err" << std::endl;
+//            std::cout << strerror(errno) << std::endl;
+//            return 1;
+//        }
+//        printf("Recved %ld bytes: '%.*s'\n", recv_ret, (int)recv_ret, recv_buf);
+//        sleep(1);
+//    }
+
+    int client = -1;
+    while (1) {
+        if (client == -1) {
+            sockaddr_in from;
+            socklen_t   fromlen = sizeof(from);
+            client = accept(listening_socket, reinterpret_cast<sockaddr*>(&from), &fromlen);
+            if (client == -1 && errno != EAGAIN) {
+                std::cout << "accept err" << std::endl;
+                std::cout << strerror(errno) << std::endl;
+                return 1;
+            }
+            if (client == -1) { return 1; }
+            std::cout << "Connected client " << client << ": " << Addr::inaddr_to_str(&from) << std::endl;
         }
-        printf("Recved %ld bytes: '%.*s'\n", recv_ret, (int)recv_ret, recv_buf);
-        sleep(1);
+        char recv_buf[1024] = {};
+        ssize_t recv_ret = 1;
+        while (recv_ret) {
+//        recv_ret = recv(listening_socket, recv_buf, 1024, 0);
+            recv_ret = recv(client, recv_buf, 1024, MSG_NOSIGNAL);
+            if (recv_ret == -1) {
+                if (errno == ECONNREFUSED) {
+                    std::cout << "CLIENT DISCONNECTED" << std::endl;
+                } else {
+                    std::cout << "Recv err" << std::endl;
+                    std::cout << strerror(errno) << std::endl;
+                    return 1;
+                }
+            } else {
+                printf("Recved %ld bytes: '%.*s'\n", recv_ret, (int)recv_ret, recv_buf);
+                sleep(1);
+            }
+
+        }
     }
+
     return 0;
 
 
