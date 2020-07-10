@@ -92,7 +92,7 @@ class TcpDirect_and_EfVi {
                     std::cout << "Ub ret " << unbundle_ret << std::endl;
                     if (unbundle_ret) {
                         pio_in_use = false;
-                        std::cout << "Pio in use: false" << std::endl;
+//                        std::cout << "Pio in use: false" << std::endl;
                     }
                     break;
                 default:
@@ -190,7 +190,7 @@ class Zocket {
         prepare_data_for_copy_pio();
         ef_vi_transmit_pio_warm(&tcp_direct_and_ef_vi->vi);
         write_with_copy_pio();
-        std::cout << "Pio in use: true" << std::endl;
+//        std::cout << "Pio in use: true" << std::endl;
         tcp_direct_and_ef_vi->pio_in_use = true;
         complete_send();
     }
@@ -301,7 +301,6 @@ int main(int ac, char** av)
     }
     std::cout << "Opened" << std::endl;
 
-
     for (int i = 0; i < 10; ++i) {
         if (!tcpdirect.pio_in_use) {
             zocket.do_write();
@@ -314,9 +313,6 @@ int main(int ac, char** av)
 
     sleep(1);
     zocket.close();
-
-
-    std::cout << "Hello, World!" << std::endl;
     tcpdirect.deinit();
     return 0;
 }

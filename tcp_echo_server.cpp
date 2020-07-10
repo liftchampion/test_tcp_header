@@ -20,8 +20,13 @@
 #define BUF_SIZE 1024
 
 int main(int ac, char **av) {
-    std::string hostport = "0.0.0.0:0";
-    if (ac == 2) { hostport = av[1]; }
+
+    if (ac != 2) {
+        std::cout << "usage: ./server IP:PORT" << std::endl;
+        return 0;
+    }
+
+    std::string hostport = av[1];
 
     sockaddr_in serv_addr = Addr::string_to_inaddr(hostport);
 
@@ -82,10 +87,6 @@ int main(int ac, char **av) {
                         return 1;
                     }
                 } else {
-//                    for (size_t i = 0; i < hdr.msg_iovlen; ++i) {
-//                        printf("Recved %ld bytes: '%.*s'\n",
-//                                hdr.msg_iov[i].iov_len, (int) hdr.msg_iov[i].iov_len,  (char*)hdr.msg_iov[i].iov_base);
-//                    }
                     printf("Recved %ld bytes: '%.*s'\n", recv_ret, (int)recv_ret, recv_buf);
                 }
             }
