@@ -363,6 +363,7 @@ int main(int ac, char **av) {
             char recv_buf[1024] = {};
             ssize_t recv_ret = 1;
             while (recv_ret) {
+                std::cout << "in recv while" << std::endl;
 //        recv_ret = recv(listening_socket, recv_buf, 1024, 0);
                 recv_ret = recv(client, recv_buf, 1024, MSG_NOSIGNAL);
                 if (recv_ret == -1) {
