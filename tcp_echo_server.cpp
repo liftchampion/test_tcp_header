@@ -366,7 +366,7 @@ int main(int ac, char **av) {
 //        recv_ret = recv(listening_socket, recv_buf, 1024, 0);
             recv_ret = recv(client, recv_buf, 1024, MSG_NOSIGNAL);
             if (recv_ret == -1) {
-                if (errno == ECONNREFUSED) {
+                if (errno == ECONNRESET) {
                     std::cout << "CLIENT DISCONNECTED" << std::endl;
                 } else {
                     std::cout << "Recv err [" << errno << ']' << std::endl;
