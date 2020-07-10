@@ -283,11 +283,23 @@ class TCPServer {
 };
 
 
+#define BUF_SIZE 1024
+
+//msghdr* alloc_msg_hdr() {
+//    msghdr* hdr = {};
+//    iovec*  iov = {};
+//    iov = (iovec*)malloc(sizeof(iovec) * BUF_SIZE);
+//    for (int i = 0; i < BUF_SIZE; ++i) {
+//        iov[i].iov_base = iov + sizeof(iovec) * i;
+//        iov.i
+//    }
+//    return hdr;
+//}
+
 
 int main(int ac, char **av) {
     std::string hostport = "0.0.0.0:0";
     if (ac == 2) { hostport = av[1]; }
-
 
     sockaddr_in serv_addr = Addr::string_to_inaddr(hostport);
 
@@ -318,34 +330,6 @@ int main(int ac, char **av) {
 
     std::cout << "Opened server at addr " << Addr::inaddr_to_str(&serv_addr) << std::endl;
 
-
-//    sockaddr_in from;
-//    socklen_t   fromlen = sizeof(from);
-//    int client = accept(listening_socket, reinterpret_cast<sockaddr*>(&from), &fromlen);
-//    if (client == -1 && errno != EAGAIN) {
-//        std::cout << "accept err" << std::endl;
-//        std::cout << strerror(errno) << std::endl;
-//        return 1;
-//    }
-//    if (client == -1) { return 1; }
-//    std::cout << "Connected client " << client << ": " << Addr::inaddr_to_str(&from) << std::endl;
-
-
-
-//    char recv_buf[1024] = {};
-//    ssize_t recv_ret = 1;
-//    while (recv_ret) {
-////        recv_ret = recv(listening_socket, recv_buf, 1024, 0);
-//        recv_ret = recv(client, recv_buf, 1024, MSG_NOSIGNAL);
-//        if (recv_ret == -1) {
-//            std::cout << "Recv err" << std::endl;
-//            std::cout << strerror(errno) << std::endl;
-//            return 1;
-//        }
-//        printf("Recved %ld bytes: '%.*s'\n", recv_ret, (int)recv_ret, recv_buf);
-//        sleep(1);
-//    }
-
     int client = -1;
     while (1) {
         if (client == -1) {
@@ -364,7 +348,27 @@ int main(int ac, char **av) {
             ssize_t recv_ret = 1;
             while (recv_ret && client != -1) {
 //        recv_ret = recv(listening_socket, recv_buf, 1024, 0);
-                recv_ret = recv(client, recv_buf, 1024, MSG_NOSIGNAL);
+                char buf[BUF_SIZE][BUF_SIZE] = {{}};
+                msghdr hdr = {};
+                hdr.msg_iovlen = BUF_SIZE;
+                iovec iov[BUF_SIZE] = {};
+                for (size_t i = 0; i < hdr.msg_iovlen; ++i) {
+                    iov[i].iov_base = buf[i];
+                    iov[i].iov_len = hdr.msg_iovlen;
+                }
+                char control[BUF_SIZE] = {};
+                char name[BUF_SIZE] = {};
+                hdr.msg_iov = iov;
+                hdr.msg_iovlen = BUF_SIZE;
+                hdr.msg_control = control;
+                hdr.msg_controllen = BUF_SIZE;
+                hdr.msg_name = name;
+                hdr.msg_namelen = BUF_SIZE;
+
+                char control_buf[BUF_SIZE];
+                size_t control_buf_size = BUF_SIZE;
+                recv_ret = recvmsg(client, &hdr, MSG_NOSIGNAL);
+//                recv_ret = recv(client, recv_buf, 1024, MSG_NOSIGNAL);
                 if (recv_ret == -1) {
                     if (errno == ECONNRESET) {
                         std::cout << "CLIENT DISCONNECTED" << std::endl;
@@ -376,7 +380,11 @@ int main(int ac, char **av) {
                         return 1;
                     }
                 } else {
-                    printf("Recved %ld bytes: '%.*s'\n", recv_ret, (int)recv_ret, recv_buf);
+                    for (size_t i = 0; i < hdr.msg_iovlen; ++i) {
+                        printf("Recved %ld bytes: '%.*s'\n",
+                                hdr.msg_iov[i].iov_len, (int) hdr.msg_iov[i].iov_len,  (char*)hdr.msg_iov[i].iov_base);
+                    }
+//                    printf("Recved %ld bytes: '%.*s'\n", recv_ret, (int)recv_ret, recv_buf);
 //                    sleep(1);
                 }
             }
