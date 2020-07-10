@@ -368,6 +368,8 @@ int main(int ac, char **av) {
             if (recv_ret == -1) {
                 if (errno == ECONNRESET) {
                     std::cout << "CLIENT DISCONNECTED" << std::endl;
+                    errno = 0;
+                    break;
                 } else {
                     std::cout << "Recv err [" << errno << ']' << std::endl;
                     std::cout << strerror(errno) << std::endl;
