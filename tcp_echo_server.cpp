@@ -359,27 +359,28 @@ int main(int ac, char **av) {
             }
             if (client == -1) { return 1; }
             std::cout << "Connected client " << client << ": " << Addr::inaddr_to_str(&from) << std::endl;
-        }
-        char recv_buf[1024] = {};
-        ssize_t recv_ret = 1;
-        while (recv_ret) {
+        } else {
+            char recv_buf[1024] = {};
+            ssize_t recv_ret = 1;
+            while (recv_ret) {
 //        recv_ret = recv(listening_socket, recv_buf, 1024, 0);
-            recv_ret = recv(client, recv_buf, 1024, MSG_NOSIGNAL);
-            if (recv_ret == -1) {
-                if (errno == ECONNRESET) {
-                    std::cout << "CLIENT DISCONNECTED" << std::endl;
-                    errno = 0;
-                    break;
+                recv_ret = recv(client, recv_buf, 1024, MSG_NOSIGNAL);
+                if (recv_ret == -1) {
+                    if (errno == ECONNRESET) {
+                        std::cout << "CLIENT DISCONNECTED" << std::endl;
+                        errno = 0;
+                        break;
+                    } else {
+                        std::cout << "Recv err [" << errno << ']' << std::endl;
+                        std::cout << strerror(errno) << std::endl;
+                        return 1;
+                    }
                 } else {
-                    std::cout << "Recv err [" << errno << ']' << std::endl;
-                    std::cout << strerror(errno) << std::endl;
-                    return 1;
+                    printf("Recved %ld bytes: '%.*s'\n", recv_ret, (int)recv_ret, recv_buf);
+                    sleep(1);
                 }
-            } else {
-                printf("Recved %ld bytes: '%.*s'\n", recv_ret, (int)recv_ret, recv_buf);
-                sleep(1);
-            }
 
+            }
         }
     }
 
