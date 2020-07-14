@@ -27,7 +27,7 @@
 
 class TcpDirect_and_EfVi {
   public:
-    inline bool init(const char* interface_name) noexcept
+    inline bool init(const char* v_interface_name, const char* hw_interface_name, int vlan_id) noexcept
     {
         if (zf_init()) {
             std::cout << "zf_init err" << std::endl;
@@ -37,7 +37,7 @@ class TcpDirect_and_EfVi {
             std::cout << "zf_attr_alloc err" << std::endl;
             return false;
         }
-        if (zf_attr_set_from_str(attr, "interface", interface_name)) {
+        if (zf_attr_set_from_str(attr, "interface", v_interface_name)) {
             std::cout << "zf_attr_set_from_str err" << std::endl;
             return false;
         }
@@ -45,21 +45,30 @@ class TcpDirect_and_EfVi {
             std::cout << "zf_stack_alloc err" << std::endl;
             return false;
         }
-        return init_ev_fi(interface_name);
+        return init_ev_fi(hw_interface_name, vlan_id);
     }
 
-    inline bool init_ev_fi(const char* interface_name) noexcept
+    inline bool init_ev_fi(const char* hw_interface_name, int vlan_id) noexcept
     {
-        std::cout << "Trying to init ev_fi with interface: '" << interface_name << "'" << std::endl;
+        std::cout << "Trying to init ev_fi with interface: '" << hw_interface_name << "'" << std::endl;
         if (ef_driver_open(&driver_handle)) {
             std::cout << "ef_driver_open err" << std::endl;
             return false;
         }
 
-        if (ef_pd_alloc_by_name(&pd, driver_handle, interface_name, EF_PD_DEFAULT)) {
-            std::cout << "ef_pd_alloc_by_name err" << std::endl;
-            return false;
+        if (vlan_id == 0) {
+            if (ef_pd_alloc_by_name(&pd, driver_handle, hw_interface_name, EF_PD_DEFAULT)) {
+                std::cout << "ef_pd_alloc_by_name err" << std::endl;
+                return false;
+            }
+        } else {
+            if (ef_pd_alloc_with_vport(&pd, driver_handle, hw_interface_name, EF_PD_DEFAULT, vlan_id)) {
+                std::cout << "ef_pd_alloc_with_vport err" << std::endl;
+                return false;
+            }
         }
+
+
         int flags = EF_VI_FLAGS_DEFAULT;
         if (ef_vi_alloc_from_pd(&vi, driver_handle, &pd, driver_handle,
                 -1, 0, -1, nullptr, -1, static_cast<enum ef_vi_flags >(flags)) < 0) {
@@ -281,18 +290,21 @@ class Zocket {
 
 int main(int ac, char** av)
 {
-    if (ac != 5) {
-        std::cout << "Usage <InterfaceName> <Host:Port> <MsgLenInHeader> <MsgActualLen>" << std::endl;
+    if (ac != 7) {
+        //                           1                    2             3          4             5               6
+        std::cout << "Usage <VirtualInterfaceName> <HWInterfaceName> <VlanID> <Host:Port> <MsgLenInHeader> <MsgActualLen>" << std::endl;
+        std::cout << "If you don't use VLAN set 'VlanID' to 0 and use same 'VirtualInterfaceName' and 'HWInterfaceName'" << std::endl;
         return 0;
     }
+    int vlan_id = atoi(av[3]);
     TcpDirect_and_EfVi tcpdirect;
-    if (!tcpdirect.init(av[1])) {
+    if (!tcpdirect.init(av[1], av[2], vlan_id)) {
         return 0;
     }
-    int msg_len_in_header = atoi(av[3]);
-    int msg_actual_len = atoi(av[4]);
+    int msg_len_in_header = atoi(av[5]);
+    int msg_actual_len = atoi(av[6]);
     Zocket zocket(&tcpdirect, msg_len_in_header, msg_actual_len);
-    if (!zocket.open(av[2])) {
+    if (!zocket.open(av[4])) {
         return 0;
     }
     std::cout << "Opened" << std::endl;
