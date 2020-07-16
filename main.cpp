@@ -288,15 +288,12 @@ int ef_pd_alloc_with_vport2(ef_pd* pd, ef_driver_handle pd_dh,
                            enum ef_pd_flags flags, int vlan_id)
 {
     int ifindex = if_nametoindex(intf_name);
-    if( ifindex == 0 )
+    if( ifindex == 0 ) {
+        std::cout << "FAILED NAMETOINDEX" << std::endl;
         return -errno;
+    }
     return __ef_pd_alloc2(pd, pd_dh, ifindex, flags | EF_PD_VPORT, vlan_id);
 }
-
-
-
-
-
 
 
 
@@ -322,14 +319,16 @@ class TcpDirect_and_EfVi {
             std::cout << "zf_attr_set_from_str err" << std::endl;
             return false;
         }
-        if (zf_stack_alloc(attr, &stack)) {
-            std::cout << "zf_stack_alloc err" << std::endl;
+        int ret = zf_stack_alloc(attr, &stack);
+        if (ret) {
+            std::cout << "zf_stack_alloc err: " << ret << " [" << strerror(-ret) << "]" << std::endl;
             return false;
         }
-        return init_ev_fi(hw_interface_name, vlan_id);
+        std::cout << "TCPDirect inited" << std::endl;
+        return init_ev_fi(v_interface_name, hw_interface_name, vlan_id);
     }
 
-    inline bool init_ev_fi(const char* hw_interface_name, int vlan_id) noexcept
+    inline bool init_ev_fi(const char* v_interface_name, const char* hw_interface_name, int vlan_id) noexcept
     {
         std::cout << "Trying to init ev_fi with interface: '" << hw_interface_name << "'" << std::endl;
         if (ef_driver_open(&driver_handle)) {
@@ -337,21 +336,46 @@ class TcpDirect_and_EfVi {
             return false;
         }
 
-        if (vlan_id == 0) {
-            if (ef_pd_alloc_by_name(&pd, driver_handle, hw_interface_name, EF_PD_DEFAULT)) {
-                std::cout << "ef_pd_alloc_by_name err" << std::endl;
-                return false;
+        {
+            int IFINDEX_TO_CHECK = 1;
+            std::cout << "Resolving name of interface with index " << IFINDEX_TO_CHECK << ": ";
+            char name_buf[IFNAMSIZ] = {};
+            char* if_name = if_indextoname(IFINDEX_TO_CHECK, name_buf);
+            if (if_name == nullptr) {
+                std::cout << "if_indextoname err: errno: " << errno << " [" << strerror(errno) << "]" << std::endl;
+            } else {
+                std::cout << "[" << if_name << "]" << std::endl;
             }
-        } else {
+        }
 
+
+        std::cout << "Resolving ifindex of HW-interface [" << hw_interface_name << "]: ";
+        {
             unsigned int r = if_nametoindex(hw_interface_name);
             if (r == 0) {
-                std::cout << "if_nametoindex err: " << r << " [" << strerror(-r) << "]" << std::endl;
-                return false;
+                std::cout << "if_nametoindex err: ret: " << r << ", errno: " << errno << " [" << strerror(errno) << "]" << std::endl;
             } else {
                 std::cout << "found ifindex: " << r << std::endl;
             }
+        }
+        std::cout << "Resolving ifindex of V-interface [" << v_interface_name << "] : ";
+        {
+            unsigned int r = if_nametoindex(hw_interface_name);
+            if (r == 0) {
+                std::cout << "if_nametoindex err: ret: " << r << ", errno: " << errno << " [" << strerror(errno) << "]" << std::endl;
+            } else {
+                std::cout << "found ifindex: " << r << std::endl;
+            }
+        }
 
+
+        if (vlan_id == 0) {
+            int ret = ef_pd_alloc_by_name(&pd, driver_handle, hw_interface_name, EF_PD_DEFAULT);
+            if (ret) {
+                std::cout << "ef_pd_alloc_by_name err: " << ret << " [" << strerror(-ret) << "]" << std::endl;
+                return false;
+            }
+        } else {
             errno = 0;
             int ret = ef_pd_alloc_with_vport2(&pd, driver_handle, hw_interface_name, EF_PD_DEFAULT, vlan_id); /// EPROTO
             if (ret) {
@@ -594,26 +618,26 @@ int main(int ac, char** av)
         return 0;
     }
     std::cout << "Ef vi inited" << std::endl;
-    int msg_len_in_header = atoi(av[5]);
-    int msg_actual_len = atoi(av[6]);
-    Zocket zocket(&tcpdirect, msg_len_in_header, msg_actual_len);
-    if (!zocket.open(av[4])) {
-        return 0;
-    }
-    std::cout << "Opened" << std::endl;
-
-    for (int i = 0; i < 10; ++i) {
-        if (!tcpdirect.pio_in_use) {
-            zocket.do_write();
-        }
-        while (tcpdirect.pio_in_use) {
-            tcpdirect.evq_poll();
-        }
-        sleep(1);
-    }
+///    int msg_len_in_header = atoi(av[5]);
+///    int msg_actual_len = atoi(av[6]);
+///    Zocket zocket(&tcpdirect, msg_len_in_header, msg_actual_len);
+///    if (!zocket.open(av[4])) {
+///        return 0;
+///    }
+///    std::cout << "Opened" << std::endl;
+///
+///    for (int i = 0; i < 10; ++i) {
+///        if (!tcpdirect.pio_in_use) {
+///            zocket.do_write();
+///        }
+///        while (tcpdirect.pio_in_use) {
+///            tcpdirect.evq_poll();
+///        }
+///        sleep(1);
+///    }
 
     sleep(1);
-    zocket.close();
+///    zocket.close();
     tcpdirect.deinit();
     return 0;
 }
