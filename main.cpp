@@ -24,6 +24,8 @@
 
 #include "addr.h"
 
+#include <ctime>
+
 
 enum ef_vi_capability {
     /** Hardware capable of PIO */
@@ -165,6 +167,8 @@ enum ef_vi_capability {
 #include "driver_access.h"
 #include "logging.h"
 
+//#include "driver/linux_net/driverlink_api.h"
+
 #include <net/if.h>
 
 void ef_vi_set_intf_ver2(char* intf_ver, size_t len)
@@ -188,6 +192,23 @@ void ef_vi_set_intf_ver2(char* intf_ver, size_t len)
         abort();
     }
 }
+
+/*! \i_efab_unix */
+ci_inline int
+ci_resource_alloc2(int fp, struct ci_resource_alloc_s* io)
+{
+    errno = 0;
+
+    std::cout << "Requested resource alloc[" << CI_RESOURCE_ALLOC << "] with VLAN-ID: " << io->u.pd.in_vlan_id << std::endl;
+
+    int ret = ioctl(fp, CI_RESOURCE_ALLOC, io);
+    if( ret < 0 )  {
+        std::cout << "ioctl failed: ret=" << ret << ", errno=" << errno << ". [" << strerror(errno) << "]" << std::endl;
+        return -errno;
+    }
+    return 0;
+}
+
 
 
 static int __ef_pd_alloc2(ef_pd* pd, ef_driver_handle pd_dh,
@@ -235,7 +256,7 @@ static int __ef_pd_alloc2(ef_pd* pd, ef_driver_handle pd_dh,
         ra.u.pd.in_flags |= EFCH_PD_FLAG_IGNORE_BLACKLIST;
     ra.u.pd.in_vlan_id = vlan_id;
 
-    rc = ci_resource_alloc(pd_dh, &ra);
+    rc = ci_resource_alloc2(pd_dh, &ra);
     if( rc < 0 ) {
         std::cout << "FUCK 1" << std::endl;
 //        LOGVV(ef_log("ef_pd_alloc: ci_resource_alloc %d", rc));
@@ -367,6 +388,7 @@ class TcpDirect_and_EfVi {
                 std::cout << "found ifindex: " << r << std::endl;
             }
         }
+        std::cout << "Vlan ID is " << vlan_id << std::endl;
 
 
         if (vlan_id == 0) {
@@ -606,12 +628,20 @@ class Zocket {
 
 int main(int ac, char** av)
 {
+    time_t t; // t passed as argument in function time()
+    struct tm * tt; // decalring variable for localtime()
+    time (&t); //passing argument to time()
+    tt = localtime(&t);
+    std::cout << "Current Day, Date and Time is = "<< asctime(tt) << std::endl;
     if (ac != 7) {
         //                           1                    2             3          4             5               6
         std::cout << "Usage <VirtualInterfaceName> <HWInterfaceName> <VlanID> <Host:Port> <MsgLenInHeader> <MsgActualLen>" << std::endl;
         std::cout << "If you don't use VLAN set 'VlanID' to 0 and use same 'VirtualInterfaceName' and 'HWInterfaceName'" << std::endl;
         return 0;
     }
+
+//    std::cout << "API VER" << EFX_DRIVERLINK_API_VERSION << std::endl;
+
     int vlan_id = atoi(av[3]);
     TcpDirect_and_EfVi tcpdirect;
     if (!tcpdirect.init(av[1], av[2], vlan_id)) {
@@ -641,3 +671,17 @@ int main(int ac, char** av)
     tcpdirect.deinit();
     return 0;
 }
+
+
+//printk(KERN_ERR "[MYLOG]" fmt "\n", __VA_ARGS__)
+//printk(KERN_ERR "[MYLOG] in ef10_vport_alloc. vlan id %d\n", vlan_id);
+//printk(KERN_ERR "[MYLOG] in efch_resource_alloc. vlan id %d\n", alloc->u.pd.in_vlan_id);
+//printk(KERN_ERR "[MYLOG] !!!! returning EPROTO from 'efrm_pd_check_pci_addr_alignment'\n");
+
+//printk(KERN_ERR "[MYLOG] in ef10_vport_alloc. vlan id %hu\n", vlan);
+
+//printk(KERN_ERR "[MYLOG] in efx_mcdi_rpc. CMD %u\n", cmd);
+
+//printk(KERN_ERR "[MYLOG] calling efx_mcdi_display_error. [2]\n");
+
+//printk(KERN_ERR "[MYLOG] calling efx_mcdi_complete_cmd. [1]\n");
