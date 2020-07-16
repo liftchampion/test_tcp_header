@@ -46,6 +46,7 @@ class TcpDirect_and_EfVi {
         ZF_TRY(zf_init());
         ZF_TRY(zf_attr_alloc(&attr));
         ZF_TRY(zf_attr_set_from_str(attr, "interface", v_interface_name));
+        std::cout << "Initing TCPdirect on interface: " << v_interface_name << std::endl;
         ZF_TRY(zf_stack_alloc(attr, &stack));
         std::cout << "TCPDirect inited" << std::endl;
         return init_ev_fi(v_interface_name, hw_interface_name, vlan_id);
@@ -54,12 +55,14 @@ class TcpDirect_and_EfVi {
     inline bool init_ev_fi(const char* v_interface_name, const char* hw_interface_name, int vlan_id) noexcept
     {
         (void)v_interface_name;
-        std::cout << "Trying to init ev_fi with interface: '" << hw_interface_name << "'" << std::endl;
+        std::cout << "Trying to init ev_fi on interface: '" << hw_interface_name << "'" << std::endl;
         ZF_TRY(ef_driver_open(&driver_handle));
 
         if (vlan_id == 0) {
+            std::cout << "interface is not a vlan" << std::endl;
             ZF_TRY(ef_pd_alloc_by_name(&pd, driver_handle, hw_interface_name, EF_PD_DEFAULT));
         } else {
+            std::cout << "Vlan id is " << vlan_id << std::endl;
             ZF_TRY(ef_pd_alloc_with_vport(&pd, driver_handle, hw_interface_name, EF_PD_DEFAULT, vlan_id));
         }
 
@@ -158,19 +161,14 @@ class Zocket {
 
     inline bool open(const sockaddr_in* addr) noexcept
     {
-        if (zft_alloc(tcp_direct_and_ef_vi->stack, tcp_direct_and_ef_vi->attr, &_socket_handle)) {
-            std::cout << "zft_alloc err " << std::endl;
-            return false;
-        }
-        if (zft_connect(_socket_handle, (const sockaddr*)addr, sizeof(sockaddr), &_socket)) {
-            std::cout << "zft_connect err " << std::endl;
-            return false;
-        }
+        ZF_TRY(zft_alloc(tcp_direct_and_ef_vi->stack, tcp_direct_and_ef_vi->attr, &_socket_handle));
+        ZF_TRY(zft_connect(_socket_handle, (const sockaddr*)addr, sizeof(sockaddr), &_socket));
         while (zft_state(_socket) == TCP_SYN_SENT) {
             zf_reactor_perform(tcp_direct_and_ef_vi->stack);
         }
-        if (zft_state(_socket) != TCP_ESTABLISHED) {
-            std::cout << "connection not established" << std::endl;
+        int state = zft_state(_socket);
+        if (state != TCP_ESTABLISHED) {
+            std::cout << "connection not established: state is " << state << std::endl;
             return false;
         }
         return true;
