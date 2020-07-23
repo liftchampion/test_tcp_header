@@ -21,12 +21,12 @@
 
 int main(int ac, char **av) {
 
-    if (ac != 2) {
-        std::cout << "usage: ./server IP:PORT" << std::endl;
+    if (ac != 3) {
+        std::cout << "usage: ./server IFACE IP:PORT" << std::endl;
         return 0;
     }
 
-    std::string hostport = av[1];
+    std::string hostport = av[2];
 
     sockaddr_in serv_addr = Addr::string_to_inaddr(hostport);
 
@@ -38,6 +38,12 @@ int main(int ac, char **av) {
         std::cout << strerror(errno) << std::endl;
         return 1;
     }
+
+    if (setsockopt (listening_socket, SOL_SOCKET, SO_BINDTODEVICE, av[1], strlen(av[1])) < 0) {
+        perror ("setsockopt() failed to bind to interface ");
+        exit (EXIT_FAILURE);
+    }
+
     if (bind(listening_socket, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr))) {
         std::cout << "bind err" << std::endl;
         std::cout << strerror(errno) << std::endl;
@@ -55,11 +61,6 @@ int main(int ac, char **av) {
         return 1;
     }
 
-    if (setsockopt (listening_socket, SOL_SOCKET, SO_BINDTODEVICE, av[1], strlen(av[1])) < 0) {
-        perror ("setsockopt() failed to bind to interface ");
-        exit (EXIT_FAILURE);
-    }
-
     std::cout << "Opened server at addr " << Addr::inaddr_to_str(&serv_addr) << std::endl;
 
     int client = -1;
@@ -68,6 +69,12 @@ int main(int ac, char **av) {
             sockaddr_in from;
             socklen_t   fromlen = sizeof(from);
             client = accept(listening_socket, reinterpret_cast<sockaddr*>(&from), &fromlen);
+
+            if (setsockopt (client, SOL_SOCKET, SO_BINDTODEVICE, av[1], strlen(av[1])) < 0) {
+                perror ("setsockopt() failed to bind to interface (client)");
+                exit (EXIT_FAILURE);
+            }
+
             if (client == -1 && errno != EAGAIN) {
                 std::cout << "accept err" << std::endl;
                 std::cout << strerror(errno) << std::endl;
