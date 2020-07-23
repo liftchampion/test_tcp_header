@@ -55,6 +55,11 @@ int main(int ac, char **av) {
         return 1;
     }
 
+    if (setsockopt (listening_socket, SOL_SOCKET, SO_BINDTODEVICE, av[1], strlen(av[1])) < 0) {
+        perror ("setsockopt() failed to bind to interface ");
+        exit (EXIT_FAILURE);
+    }
+
     std::cout << "Opened server at addr " << Addr::inaddr_to_str(&serv_addr) << std::endl;
 
     int client = -1;
