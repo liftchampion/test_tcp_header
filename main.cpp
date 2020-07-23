@@ -282,6 +282,12 @@ int main(int ac, char** av) //
 
 
     int sock = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (setsockopt (sock, SOL_SOCKET, SO_BINDTODEVICE, av[1], strlen(av[1])) < 0) {
+        perror ("setsockopt() failed to bind to interface ");
+        exit (EXIT_FAILURE);
+    }
+
     sockaddr_in addr = Addr::string_to_inaddr(av[4]);
     ::connect(sock, (sockaddr*)&addr, sizeof(addr));
 
