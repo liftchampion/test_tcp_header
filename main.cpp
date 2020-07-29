@@ -269,47 +269,55 @@ class Zocket {
     char send_buff[1024] = {};
 };
 
-
+#include <linux/sockios.h>
 
 int main(int ac, char** av) //
 {
+    
     if (ac != 7) {
         //                           1                    2             3          4             5               6
         std::cout << "Usage <VirtualInterfaceName> <HWInterfaceName> <VlanID> <Host:Port> <MsgLenInHeader> <MsgActualLen>" << std::endl;
         std::cout << "If you don't use VLAN set 'VlanID' to 0 and use same 'VirtualInterfaceName' and 'HWInterfaceName'" << std::endl;
         return 0;
     }
+//    uint32_t v = 131328;
+//    int vv = ntohl(v);
+//    std::cout << vv << std::endl;
+//
+//    return 0;
 
 
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
+//    int sock = socket(AF_INET, SOCK_STREAM, 0);
+//
+//    if (setsockopt (sock, SOL_SOCKET, SO_BINDTODEVICE, av[1], strlen(av[1])) < 0) {
+//        perror ("setsockopt() failed to bind to interface ");
+//        exit (EXIT_FAILURE);
+//    }
+//
+//    sockaddr_in addr = Addr::string_to_inaddr(av[4]);
+//    ::connect(sock, (sockaddr*)&addr, sizeof(addr));
+//
+//    sleep(1);
+//    send(sock, "HELLO SUKA", 10, 0);
+//    sleep(1);
+//    send(sock, "1111111111", 10, 0);
+//    sleep(1);
+//    send(sock, "2222222222", 10, 0);
+//    sleep(1);
+//    send(sock, "3333333333", 10, 0);
+//    sleep(1);
+//    send(sock, "4444444444", 10, 0);
+//    sleep(1);
+//    send(sock, "5555555555", 10, 0);
+//
+//    sleep(1);
+//    shutdown(sock, SHUT_RDWR);
+//    sleep(1);
+//    close(sock);
+//
+//    return 0;
 
-    if (setsockopt (sock, SOL_SOCKET, SO_BINDTODEVICE, av[1], strlen(av[1])) < 0) {
-        perror ("setsockopt() failed to bind to interface ");
-        exit (EXIT_FAILURE);
-    }
-
-    sockaddr_in addr = Addr::string_to_inaddr(av[4]);
-    ::connect(sock, (sockaddr*)&addr, sizeof(addr));
-
-    sleep(1);
-    send(sock, "HELLO SUKA", 10, 0);
-    sleep(1);
-    send(sock, "1111111111", 10, 0);
-    sleep(1);
-    send(sock, "2222222222", 10, 0);
-    sleep(1);
-    send(sock, "3333333333", 10, 0);
-    sleep(1);
-    send(sock, "4444444444", 10, 0);
-    sleep(1);
-    send(sock, "5555555555", 10, 0);
-
-    sleep(1);
-    shutdown(sock, SHUT_RDWR);
-    sleep(1);
-    close(sock);
-
-    return 0;
+//    SIOCSIFVLAN
 
     int vlan_id = atoi(av[3]);
     TcpDirect_and_EfVi tcpdirect;
