@@ -1,72 +1,39 @@
 
 
-#iptables -t nat -I PREROUTING -s 10.3.3.10 -d 10.3.3.20 -j TRACE
-#iptables -t nat -I PREROUTING -s 10.3.3.20 -d 10.3.3.10 -j TRACE
-#
-#iptables -t nat -I OUTPUT -s 10.3.3.10 -d 10.3.3.20 -j TRACE
-#iptables -t nat -I OUTPUT -s 10.3.3.20 -d 10.3.3.10 -j TRACE
+iptables -t nat -A PREROUTING -s 10.50.1.1 -d 10.60.0.1 -j ACCEPT
 
-iptables -t raw -I PREROUTING -s 10.3.3.10 -d 10.3.3.20 -j TRACE
-iptables -t raw -I PREROUTING -s 10.3.3.20 -d 10.3.3.10 -j TRACE
+iptables -t nat -A OUTPUT -s 10.50.1.1 -d 10.60.0.1 -j ACCEPT
 
-iptables -t mangle -I PREROUTING -s 10.3.3.10 -d 10.3.3.20 -j TRACE
-iptables -t mangle -I PREROUTING -s 10.3.3.20 -d 10.3.3.10 -j TRACE
+iptables -t raw -A PREROUTING -s 10.50.1.1 -d 10.60.0.1 -j ACCEPT
 
-iptables -t nat -I PREROUTING -s 10.3.3.10 -d 10.3.3.20 -j TRACE
-iptables -t nat -I PREROUTING -s 10.3.3.20 -d 10.3.3.10 -j TRACE
+iptables -t mangle -A PREROUTING -s 10.50.1.1 -d 10.60.0.1 -j ACCEPT
 
-iptables -t mangle -I FORWARD -s 10.3.3.10 -d 10.3.3.20 -j TRACE
-iptables -t mangle -I FORWARD -s 10.3.3.20 -d 10.3.3.10 -j TRACE
+iptables -t nat -A PREROUTING -s 10.50.1.1 -d 10.60.0.1 -j ACCEPT
 
-iptables -t filter -I FORWARD -s 10.3.3.10 -d 10.3.3.20 -j TRACE
-iptables -t filter -I FORWARD -s 10.3.3.20 -d 10.3.3.10 -j TRACE
+iptables -t mangle -A FORWARD -s 10.50.1.1 -d 10.60.0.1 -j ACCEPT
 
-iptables -t mangle -I INPUT -s 10.3.3.10 -d 10.3.3.20 -j TRACE
-iptables -t mangle -I INPUT -s 10.3.3.20 -d 10.3.3.10 -j TRACE
+iptables -t filter -A FORWARD -s 10.50.1.1 -d 10.60.0.1 -j ACCEPT
 
-iptables -t filter -I INPUT -s 10.3.3.10 -d 10.3.3.20 -j TRACE
-iptables -t filter -I INPUT -s 10.3.3.20 -d 10.3.3.10 -j TRACE
+iptables -t mangle -A INPUT -s 10.50.1.1 -d 10.60.0.1 -j ACCEPT
 
-iptables -t raw -I OUTPUT -s 10.3.3.10 -d 10.3.3.20 -j TRACE
-iptables -t raw -I OUTPUT -s 10.3.3.20 -d 10.3.3.10 -j TRACE
+iptables -t filter -A INPUT -s 10.50.1.1 -d 10.60.0.1 -j ACCEPT
 
-iptables -t mangle -I OUTPUT -s 10.3.3.10 -d 10.3.3.20 -j TRACE
-iptables -t mangle -I OUTPUT -s 10.3.3.20 -d 10.3.3.10 -j TRACE
+iptables -t raw -A OUTPUT -s 10.50.1.1 -d 10.60.0.1 -j ACCEPT
 
-iptables -t nat -I OUTPUT -s 10.3.3.10 -d 10.3.3.20 -j TRACE
-iptables -t nat -I OUTPUT -s 10.3.3.20 -d 10.3.3.10 -j TRACE
+iptables -t mangle -A OUTPUT -s 10.50.1.1 -d 10.60.0.1 -j ACCEPT
 
-iptables -t filter -I OUTPUT -s 10.3.3.10 -d 10.3.3.20 -j TRACE
-iptables -t filter -I OUTPUT -s 10.3.3.20 -d 10.3.3.10 -j TRACE
+iptables -t nat -A OUTPUT -s 10.50.1.1 -d 10.60.0.1 -j ACCEPT
 
-iptables -t mangle -I POSTROUTING -s 10.3.3.10 -d 10.3.3.20 -j TRACE
-iptables -t mangle -I POSTROUTING -s 10.3.3.20 -d 10.3.3.10 -j TRACE
+iptables -t filter -A OUTPUT -s 10.50.1.1 -d 10.60.0.1 -j ACCEPT
 
-iptables -t nat -I POSTROUTING -s 10.3.3.10 -d 10.3.3.20 -j TRACE
-iptables -t nat -I POSTROUTING -s 10.3.3.20 -d 10.3.3.10 -j TRACE
+iptables -t mangle -A POSTROUTING -s 10.50.1.1 -d 10.60.0.1 -j ACCEPT
 
+iptables -t nat -A POSTROUTING -s 10.50.1.1 -d 10.60.0.1 -j ACCEPT
 
+iptables -t security -A INPUT -s 10.50.1.1 -d 10.60.0.1 -j ACCEPT
 
+iptables -t security -A FORWARD -s 10.50.1.1 -d 10.60.0.1 -j ACCEPT
 
+iptables -t security -A OUTPUT -s 10.50.1.1 -d 10.60.0.1 -j ACCEPT
 
-
-
-
-iptables -t security -I INPUT -s 10.3.3.10 -d 10.3.3.20 -j TRACE
-iptables -t security -I INPUT -s 10.3.3.20 -d 10.3.3.10 -j TRACE
-
-iptables -t security -I FORWARD -s 10.3.3.10 -d 10.3.3.20 -j TRACE
-iptables -t security -I FORWARD -s 10.3.3.20 -d 10.3.3.10 -j TRACE
-
-iptables -t security -I OUTPUT -s 10.3.3.10 -d 10.3.3.20 -j TRACE
-iptables -t security -I OUTPUT -s 10.3.3.20 -d 10.3.3.10 -j TRACE
-
-
-
-
-
-
-
-
-iptables -t nat -I INPUT -s 10.3.3.10 -d 10.3.3.20 -j TRACE
-iptables -t nat -I INPUT -s 10.3.3.20 -d 10.3.3.10 -j TRACE
+iptables -t nat -A INPUT -s 10.50.1.1 -d 10.60.0.1 -j ACCEPT

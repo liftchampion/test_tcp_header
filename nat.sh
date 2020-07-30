@@ -12,13 +12,13 @@
 
 #iptables -t mangle -A PREROUTING -s 10.3.3.10 -d 10.3.3.20 -j TTL --ttl-set 234
 #iptables -t mangle -A PREROUTING -s 10.3.3.20 -d 10.3.3.10 -j TTL --ttl-set 234
-#
+
 #iptables -t mangle -A PREROUTING -s 10.3.3.10 -d 10.3.3.20 -j MARK --set-mark 13
 #iptables -t mangle -A PREROUTING -s 10.3.3.20 -d 10.3.3.10 -j MARK --set-mark 13
 
 #iptables -t mangle -A OUTPUT -s 10.3.3.10 -d 10.3.3.20 -j TTL --ttl-set 234
 #iptables -t mangle -A OUTPUT -s 10.3.3.20 -d 10.3.3.10 -j TTL --ttl-set 234
-#
+
 #iptables -t mangle -A OUTPUT -s 10.3.3.10 -d 10.3.3.20 -j MARK --set-mark 13
 #iptables -t mangle -A OUTPUT -s 10.3.3.20 -d 10.3.3.10 -j MARK --set-mark 13
 
