@@ -148,10 +148,11 @@ class TcpDirect_and_EfVi {
 class Zocket {
   public:
 
-    Zocket(TcpDirect_and_EfVi* tcp_direct_and_ef_vi, int msg_declared_len, int msg_actual_len)
+    Zocket(TcpDirect_and_EfVi* tcp_direct_and_ef_vi, int msg_header_len, int msg_actual_len, int msg_host_len)
       : tcp_direct_and_ef_vi(tcp_direct_and_ef_vi)
-      , msg_declared_len(msg_declared_len)
+      , msg_header_len(msg_header_len)
       , msg_actual_len(msg_actual_len)
+      , msg_host_len(msg_host_len)
     {}
 
     inline bool open(const std::string &ip_port) noexcept
@@ -175,9 +176,10 @@ class Zocket {
         return true;
     }
 
-    inline void do_write() noexcept
+    inline void do_write(int id) noexcept
     {
-        fill_msg_with_rand();
+        fill_msg_with_chars(id);
+//        fill_msg_with_rand();
         printf("Trying to send %d bytes '%*s'\n", msg_actual_len, msg_actual_len, send_buff);
         create_header();
         prepare_data_for_copy_pio();
@@ -194,6 +196,17 @@ class Zocket {
         for (int i = 0; i < msg_actual_len; ++i) { send_buff[i] = rand() % 90 + 33; }
     }
 
+    inline void fill_msg_with_chars(int id) noexcept
+    {
+        for (int i = 0; i < msg_actual_len; ++i) {
+            if (i == 0 || i == msg_actual_len - 1) {
+                send_buff[i] = i == 0 ? '<' : '>';
+            } else {
+                send_buff[i] = '0' + id;
+            }
+        }
+    }
+
     inline bool create_header() noexcept
     {
         std::cout << "Creating headers. Headers len: " << _zfds.headers_len << std::endl;
@@ -203,6 +216,7 @@ class Zocket {
             std::cout << "zf_delegated_send_prepare err" << std::endl;
             return false;
         }
+        std::cout << "ZF can send " << _zfds.delegated_wnd << " bytes" << std::endl;
         std::cout << "Created headers. Headers len: " << _zfds.headers_len << std::endl;
         return true;
     }
@@ -222,7 +236,7 @@ class Zocket {
         }
 
         memcpy(headers_buf + _zfds.headers_len, send_buff, msg_actual_len);
-        zf_delegated_send_tcp_update(&_zfds, msg_declared_len, _push);
+        zf_delegated_send_tcp_update(&_zfds, msg_header_len, _push);
         pio_data_len = _zfds.headers_len + msg_actual_len;
     }
 
@@ -236,7 +250,7 @@ class Zocket {
     {
         struct iovec iov;
         iov.iov_base = send_buff;
-        iov.iov_len = msg_actual_len;
+        iov.iov_len = msg_host_len;
         if (zf_delegated_send_complete(_socket, &iov, 1, 0) < 0) {
             std::cout << "zf_delegated_send_complete err" << std::endl;
         }
@@ -266,8 +280,9 @@ class Zocket {
 
     TcpDirect_and_EfVi* tcp_direct_and_ef_vi = {};
 
-    const int msg_declared_len;
+    const int msg_header_len;
     const int msg_actual_len;
+    const int msg_host_len;
 
     static constexpr uint64_t _max_send_size = 400;
     static constexpr int      _push = 1;
@@ -290,50 +305,15 @@ class Zocket {
 int main(int ac, char** av) //
 {
     
-    if (ac != 7) {
-        //                           1                    2             3          4             5               6
-        std::cout << "Usage <VirtualInterfaceName> <HWInterfaceName> <VlanID> <Host:Port> <MsgLenInHeader> <MsgActualLen>" << std::endl;
+    if (ac != 8) {
+        //                           1                    2             3          4             5               6           7
+        std::cout << "Usage <VirtualInterfaceName> <HWInterfaceName> <VlanID> <Host:Port> <MsgHeaderLen> <MsgActualLen> <MsgHostLen>" << std::endl;
         std::cout << "If you don't use VLAN set 'VlanID' to 0 and use same 'VirtualInterfaceName' and 'HWInterfaceName'" << std::endl;
+        std::cout << "MsgHeaderLen: Size of msg in tcp header" << std::endl;
+        std::cout << "MsgActualLen: Size of msg in the wire" << std::endl;
+        std::cout << "MsgHostLen  : Size of msg which will be passed to host TCP-stack (for correct update Seqs)" << std::endl;
         return 0;
     }
-//    uint32_t v = 131328;
-//    int vv = ntohl(v);
-//    std::cout << vv << std::endl;
-//
-//    return 0;
-
-
-//    int sock = socket(AF_INET, SOCK_STREAM, 0);
-//
-//    if (setsockopt (sock, SOL_SOCKET, SO_BINDTODEVICE, av[1], strlen(av[1])) < 0) {
-//        perror ("setsockopt() failed to bind to interface ");
-//        exit (EXIT_FAILURE);
-//    }
-//
-//    sockaddr_in addr = Addr::string_to_inaddr(av[4]);
-//    ::connect(sock, (sockaddr*)&addr, sizeof(addr));
-//
-//    sleep(1);
-//    send(sock, "HELLO SUKA", 10, 0);
-//    sleep(1);
-//    send(sock, "1111111111", 10, 0);
-//    sleep(1);
-//    send(sock, "2222222222", 10, 0);
-//    sleep(1);
-//    send(sock, "3333333333", 10, 0);
-//    sleep(1);
-//    send(sock, "4444444444", 10, 0);
-//    sleep(1);
-//    send(sock, "5555555555", 10, 0);
-//
-//    sleep(1);
-//    shutdown(sock, SHUT_RDWR);
-//    sleep(1);
-//    close(sock);
-//
-//    return 0;
-
-//    SIOCSIFVLAN
 
     int vlan_id = atoi(av[3]);
     TcpDirect_and_EfVi tcpdirect;
@@ -341,9 +321,10 @@ int main(int ac, char** av) //
         return 0;
     }
     std::cout << "Ef vi inited" << std::endl;
-    int msg_len_in_header = atoi(av[5]);
+    int msg_header_len = atoi(av[5]);
     int msg_actual_len = atoi(av[6]);
-    Zocket zocket(&tcpdirect, msg_len_in_header, msg_actual_len);
+    int msg_host_len   = atoi(av[7]);
+    Zocket zocket(&tcpdirect, msg_header_len, msg_actual_len, msg_host_len);
     if (!zocket.open(av[4])) {
         return 0;
     }
@@ -351,7 +332,7 @@ int main(int ac, char** av) //
 
     for (int i = 0; i < 10; ++i) {
         if (!tcpdirect.pio_in_use) {
-            zocket.do_write();
+            zocket.do_write(i);
         }
         while (tcpdirect.pio_in_use) {
             tcpdirect.evq_poll();
