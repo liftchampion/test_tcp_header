@@ -1,6 +1,6 @@
 to build client:  make
 
-to build server:  g++ --std=c++1z tcp_echo_server.cpp -o serv
+to build server:  g++ --std=c++1z tcp_server.cpp -o serv
 
 to run server:    ./serv IFACE IP:PORT
 
