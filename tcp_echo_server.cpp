@@ -39,10 +39,10 @@ int main(int ac, char **av) {
         return 1;
     }
 
-    if (setsockopt (listening_socket, SOL_SOCKET, SO_BINDTODEVICE, av[1], strlen(av[1])) < 0) {
-        perror ("setsockopt() failed to bind to interface ");
-        exit (EXIT_FAILURE);
-    }
+//    if (setsockopt (listening_socket, SOL_SOCKET, SO_BINDTODEVICE, av[1], strlen(av[1])) < 0) {
+//        perror ("setsockopt() failed to bind to interface ");
+//        exit (EXIT_FAILURE);
+//    }
 
     if (bind(listening_socket, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr))) {
         std::cout << "bind err" << std::endl;
