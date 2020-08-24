@@ -234,10 +234,27 @@ class Zocket {
                 printf("\n");
             }
         }
-
         memcpy(headers_buf + _zfds.headers_len, send_buff, msg_actual_len);
         zf_delegated_send_tcp_update(&_zfds, msg_header_len, _push);
         pio_data_len = _zfds.headers_len + msg_actual_len;
+
+//        printf("FLAG BYTES: '");
+//        int start_idx = 24;
+//        printf("%02hhx %02hhx", headers_buf[start_idx], headers_buf[start_idx + 1]);
+//        printf("'\n");
+//        headers_buf[start_idx] &= ~(unsigned char)0b01000000;
+//        headers_buf[start_idx] |=  (unsigned char)0b00100000;
+
+//        printf("CHANGED HEADER: \n");
+//        for (int i = 0; i < _zfds.headers_len; ++i) {
+//            printf("%02hhx ", headers_buf[i]);
+//            if ((i + 1) % 8 == 0) {
+//                printf(" ");
+//            }
+//            if ((i + 1) % 16 == 0 || i == _zfds.headers_len - 1) {
+//                printf("\n");
+//            }
+//        }
     }
 
     inline void write_with_copy_pio() noexcept

@@ -1,0 +1,9 @@
+to build client:  make
+
+to build server:  g++ --std=c++1z tcp_echo_server.cpp -o serv
+
+to run server:    ./serv IFACE IP:PORT
+
+to run client:    ./test <VirtualInterfaceName> <HWInterfaceName> <VlanID>
+                         <Host:Port> <MsgHeaderLen> <MsgActualLen> <MsgHostLen>
+  * Run with no args to see details

@@ -70,10 +70,10 @@ int main(int ac, char **av) {
             socklen_t   fromlen = sizeof(from);
             client = accept(listening_socket, reinterpret_cast<sockaddr*>(&from), &fromlen);
 
-            if (setsockopt (client, SOL_SOCKET, SO_BINDTODEVICE, av[1], strlen(av[1])) < 0) {
-                perror ("setsockopt() failed to bind to interface (client)");
-                exit (EXIT_FAILURE);
-            }
+//            if (setsockopt (client, SOL_SOCKET, SO_BINDTODEVICE, av[1], strlen(av[1])) < 0) {
+//                perror ("setsockopt() failed to bind to interface (client)");
+//                exit (EXIT_FAILURE);
+//            }
 
             if (client == -1 && errno != EAGAIN) {
                 std::cout << "accept err" << std::endl;
