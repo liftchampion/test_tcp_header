@@ -58,8 +58,9 @@ class TcpDirect_and_EfVi {
         std::cout << "Trying to init ev_fi on interface: '" << hw_interface_name << "'" << std::endl;
         ZF_TRY(ef_driver_open(&driver_handle));
 
-        if (vlan_id == 0) {
+        if (vlan_id == 0 || true) {
             std::cout << "interface is not a vlan" << std::endl;
+//            ef_pd_flags flags = (ef_pd_flags)(EF_PD_VPORT | EF_PD_DEFAULT);
             ZF_TRY(ef_pd_alloc_by_name(&pd, driver_handle, hw_interface_name, EF_PD_DEFAULT));
         } else {
             std::cout << "Vlan id is " << vlan_id << std::endl;
@@ -195,17 +196,31 @@ class Zocket {
 
     inline bool create_header() noexcept
     {
+        std::cout << "Creating headers. Headers len: " << _zfds.headers_len << std::endl;
         _zfds.headers_size = MAX_ETH_HEADERS + MAX_IP_TCP_HEADERS;
         _zfds.headers = headers_buf;
-        if (zf_delegated_send_prepare(_socket, _max_send_size, 40960, 0, &(_zfds)) != ZF_DELEGATED_SEND_RC_OK) {
+        if (zf_delegated_send_prepare(_socket, _max_send_size, 29312, 0, &(_zfds)) != ZF_DELEGATED_SEND_RC_OK) {
             std::cout << "zf_delegated_send_prepare err" << std::endl;
             return false;
         }
+        std::cout << "Created headers. Headers len: " << _zfds.headers_len << std::endl;
         return true;
     }
 
     inline void prepare_data_for_copy_pio()
     {
+        std::cout << "Preparing for copy pio. Headers len: " << _zfds.headers_len << " Headers are: " << std::endl;
+
+        for (int i = 0; i < _zfds.headers_len; ++i) {
+            printf("%02hhx ", headers_buf[i]);
+            if ((i + 1) % 8 == 0) {
+                printf(" ");
+            }
+            if ((i + 1) % 16 == 0 || i == _zfds.headers_len - 1) {
+                printf("\n");
+            }
+        }
+
         memcpy(headers_buf + _zfds.headers_len, send_buff, msg_actual_len);
         zf_delegated_send_tcp_update(&_zfds, msg_declared_len, _push);
         pio_data_len = _zfds.headers_len + msg_actual_len;
@@ -213,6 +228,7 @@ class Zocket {
 
     inline void write_with_copy_pio() noexcept
     {
+        std::cout << "Transmitting copy pio. len: " << pio_data_len << std::endl;
         ef_vi_transmit_copy_pio(&tcp_direct_and_ef_vi->vi, pio_offset, headers_buf, pio_data_len, pio_id);
     }
 
@@ -254,7 +270,7 @@ class Zocket {
     const int msg_actual_len;
 
     static constexpr uint64_t _max_send_size = 400;
-    static constexpr int      _push = 0;
+    static constexpr int      _push = 1;
 
     zft_handle* _socket_handle = nullptr;
     zft*        _socket = nullptr;
@@ -265,7 +281,7 @@ class Zocket {
 
     int pio_id = 0;
 
-    char headers_buf[MAX_ETH_HEADERS + MAX_IP_TCP_HEADERS + _max_send_size];
+    char headers_buf[MAX_ETH_HEADERS + MAX_IP_TCP_HEADERS + _max_send_size] = {};
     char send_buff[1024] = {};
 };
 
@@ -287,35 +303,35 @@ int main(int ac, char** av) //
 //    return 0;
 
 
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
-
-    if (setsockopt (sock, SOL_SOCKET, SO_BINDTODEVICE, av[1], strlen(av[1])) < 0) {
-        perror ("setsockopt() failed to bind to interface ");
-        exit (EXIT_FAILURE);
-    }
-
-    sockaddr_in addr = Addr::string_to_inaddr(av[4]);
-    ::connect(sock, (sockaddr*)&addr, sizeof(addr));
-
-    sleep(1);
-    send(sock, "HELLO SUKA", 10, 0);
-    sleep(1);
-    send(sock, "1111111111", 10, 0);
-    sleep(1);
-    send(sock, "2222222222", 10, 0);
-    sleep(1);
-    send(sock, "3333333333", 10, 0);
-    sleep(1);
-    send(sock, "4444444444", 10, 0);
-    sleep(1);
-    send(sock, "5555555555", 10, 0);
-
-    sleep(1);
-    shutdown(sock, SHUT_RDWR);
-    sleep(1);
-    close(sock);
-
-    return 0;
+//    int sock = socket(AF_INET, SOCK_STREAM, 0);
+//
+//    if (setsockopt (sock, SOL_SOCKET, SO_BINDTODEVICE, av[1], strlen(av[1])) < 0) {
+//        perror ("setsockopt() failed to bind to interface ");
+//        exit (EXIT_FAILURE);
+//    }
+//
+//    sockaddr_in addr = Addr::string_to_inaddr(av[4]);
+//    ::connect(sock, (sockaddr*)&addr, sizeof(addr));
+//
+//    sleep(1);
+//    send(sock, "HELLO SUKA", 10, 0);
+//    sleep(1);
+//    send(sock, "1111111111", 10, 0);
+//    sleep(1);
+//    send(sock, "2222222222", 10, 0);
+//    sleep(1);
+//    send(sock, "3333333333", 10, 0);
+//    sleep(1);
+//    send(sock, "4444444444", 10, 0);
+//    sleep(1);
+//    send(sock, "5555555555", 10, 0);
+//
+//    sleep(1);
+//    shutdown(sock, SHUT_RDWR);
+//    sleep(1);
+//    close(sock);
+//
+//    return 0;
 
 //    SIOCSIFVLAN
 
@@ -340,7 +356,7 @@ int main(int ac, char** av) //
         while (tcpdirect.pio_in_use) {
             tcpdirect.evq_poll();
         }
-        sleep(1);
+//        sleep(1);
     }
 
     sleep(1);
@@ -349,3 +365,76 @@ int main(int ac, char** av) //
     return 0;
 }
 
+//       2c 27 d7 ce 22 c4  00 0f 53 50 d3 61  | MACS                ~~~~~ ETHER
+//       81 00 01 a4  81 00 11 a4              | VLAN TAGS
+//       08 00                                 | ETHERTYPE
+//       45                                    | IPv4 and hdr-len    ~~~~~ IP
+//       00                                    | IP shit
+//       00 32                                 | packet size (50)
+//       00 00                                 | IP identifier
+//       40 00                                 | IP flags
+//       80                                    | TTL
+//       06                                    | PROTO
+//       e0 a2                                 | checksum
+//       0a 03 03 0a  0a 03 03 14              | IPS
+//       cb 35  eb b9                          | PORTS               ~~~~~ TCP
+//       00 ce 46 0e                           | SEQ
+//       41 93 20 3b                           | ACK
+//       50 10                                 | FLAGS (hdr len = 20 bytes [ACK])
+//       ff ff                                 | Window size (65535)
+//       a2 17                                 | Checksum
+//       00 00                                 | Urgent
+//       6a 31 3c 3a 38 3a 4f 2d 66 22         | DATA                ~~~~~ PAYLOAD
+
+
+//       2c 27 d7 ce 22 c4  00 0f 53 50 d3 61  | MACS                ~~~~~ ETHER
+//                                             | VLAN TAGS
+//       08 00                                 | ETHERTYPE
+//       45                                    | IPv4 and hdr-len    ~~~~~ IP
+//       00                                    | IP shit
+//       00 3e                                 | packet size (62)
+//       53 89                                 | IP identifier
+//       40 00                                 | IP flags
+//       40                                    | TTL
+//       06                                    | PROTO
+//       cd 0d                                 | checksum
+//       0a 03 03 0a  0a 03 03 14              | IPS
+//       96 6c  eb b9                          | PORTS               ~~~~~ TCP
+//       45 b1 2e c5                           | SEQ
+//       e3 50 68 f1                           | ACK
+//       80 18                                 | FLAGS (hdr len = 32 bytes [ACK,PSH])
+//       00 e5                                 | Window size (229)
+//       1a 54                                 | checksum
+//       00 00                                 | Urgent
+//
+//       01 01 08 0a 39 8d 61 99 fc cf 92 fe
+//
+//       48 45 4c 4c 4f 20 53 55 4b 41         | DATA                ~~~~~ PAYLOAD
+
+
+
+
+
+// 2c 27 d7 ce 22 c4 00 0f  53 50 d3 61
+// 81 00 01 a4
+//
+// 08 00 45 00
+//
+// 05 dc 00 00
+//
+// 40 00 80 06 00 00
+//
+// 0a 03 03 0a 0a 03 03 14 cd 13 eb b9 ba 2d
+// c6 10 a4 81 dd 1c 50 10 ff ff 00 00 00 00
+
+// 2c 27 d7 ce 22 c4 00 0f  53 50 d3 61
+// 81 00 01 a4
+// 81 00 11 a4
+// 08 00 45 00
+//
+// 00 32 00 00
+//
+// 40 00 80 06 e0 a2
+//
+// 0a 03 03 0a 0a 03 03 14 cd 13 eb b9 ba 2d
+// c6 1a a4 81 dd 1c 50 18 ff ff 5b 14 00 00
